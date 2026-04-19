@@ -1,0 +1,28 @@
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+import ollama
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+class ChatRequest(BaseModel):
+    message: str
+    model: str = "qwen2.5:1.5b"
+
+def generate_stream(messages):
+    stream = ollama.chat(
+        model=messages["model"],
+        messages=[{"role": "user", "content": messages["message"]}],
+        stream=True,
+    )
+    for chunk in stream:
+        yield chunk["message"]["content"]
+
+@app.post("/chat")
+async def chat(request: ChatRequest):
+    return StreamingResponse(generate_stream({"message": request.message, "model": request.model}), media_type="text/plain")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
