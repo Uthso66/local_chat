@@ -6,6 +6,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 class ChatRequest(BaseModel):
     message: str
     model: str = "qwen2.5:1.5b"
@@ -19,9 +27,18 @@ def generate_stream(messages):
     for chunk in stream:
         yield chunk["message"]["content"]
 
+@app.get("/models")
+async def list_models():
+    response = ollama.list()
+    models = [model.model for model in response.models]
+    return {"models": models}
+
 @app.post("/chat")
 async def chat(request: ChatRequest):
-    return StreamingResponse(generate_stream({"message": request.message, "model": request.model}), media_type="text/plain")
+    return StreamingResponse(
+        generate_stream({"message": request.message, "model": request.model}),
+        media_type="text/plain",
+    )
 
 if __name__ == "__main__":
     import uvicorn
