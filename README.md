@@ -1,36 +1,219 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Local LLM Chat
 
-## Getting Started
+### FastAPI • Next.js • Ollama
 
-First, run the development server:
+A minimal, fully local LLM chat system designed for low-latency interaction with Ollama models. This project focuses on real-time streaming, full-context conversation handling, and complete developer control — with zero reliance on external APIs.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+It is built to explore **practical local AI workflows**, emphasizing transparency, simplicity, and performance over abstraction-heavy frameworks.
+
+---
+
+## Demo
+
+### Video Walkthrough
+
+[![Watch the demo](https://i9.ytimg.com/vi_webp/8Sp6opsaVtw/mq1.webp?sqp=CPDsns8G-oaymwEmCMACELQB8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGDsgUShyMA8=&rs=AOn4CLBxWkzuMEv_xYly8etOC-9UV9HKGw)](https://www.youtube.com/watch?v=8Sp6opsaVtw)
+
+### Screenshots
+
+![Chat UI](frontend/public/chat-ui.png)
+
+---
+
+## Key Capabilities
+
+- Token-streamed responses from local LLMs
+- Full multi-turn conversation support via message replay
+- Dynamic model discovery from Ollama runtime
+- Interruptible generation (user-controlled cancellation)
+- Persistent chat history (client-side)
+- Markdown-rendered assistant responses
+- Clean, minimal UI optimized for interaction speed
+
+---
+
+## System Architecture
+
+```
+User → Next.js Frontend → FastAPI Backend → Ollama Runtime → Model
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Design Decisions
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Full-context replay**  
+  Instead of summarizing memory, the system sends the entire message history per request. This prioritizes response fidelity over token efficiency.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Client-side persistence**  
+  Chat state is stored in `localStorage` to avoid backend session complexity and keep the system stateless.
 
-## Learn More
+- **Streaming over HTTP**  
+  Incremental response streaming is implemented to simulate token-level output without introducing WebSocket overhead.
 
-To learn more about Next.js, take a look at the following resources:
+- **Loose coupling with model runtime**  
+  Backend acts as a thin proxy, making it easy to swap or extend model providers beyond Ollama.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Tech Stack
 
-## Deploy on Vercel
+| Layer         | Technology                 |
+| ------------- | -------------------------- |
+| Frontend      | Next.js, React, TypeScript |
+| Backend       | FastAPI, Python            |
+| Model Runtime | Ollama                     |
+| Styling       | Tailwind CSS               |
+| Rendering     | React Markdown             |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Project Structure
+
+```bash
+local-chat/
+├── backend/
+│   ├── main.py
+│   └── requirements.txt
+└── frontend/
+    ├── package.json
+    └── src/
+        └── app/
+            └── page.tsx
+```
+
+---
+
+## API
+
+### `GET /models`
+
+Returns available local models.
+
+```json
+{
+  "models": ["qwen2.5:1.5b", "llama3.2:1b"]
+}
+```
+
+---
+
+### `POST /chat`
+
+Streams a response using full conversation context.
+
+```json
+{
+  "messages": [
+    { "role": "user", "content": "Hello" },
+    { "role": "assistant", "content": "Hi, how can I help?" },
+    { "role": "user", "content": "Explain recursion simply." }
+  ],
+  "model": "qwen2.5:1.5b"
+}
+```
+
+---
+
+## Local Setup
+
+### 1. Clone
+
+```bash
+git clone https://github.com/Uthso66/local-chat.git
+cd local-chat
+```
+
+---
+
+### 2. Start Ollama
+
+Ensure Ollama is installed and running:
+
+```bash
+ollama pull qwen2.5:1.5b
+ollama serve
+```
+
+Default endpoint:
+
+```
+http://localhost:11434
+```
+
+---
+
+### 3. Backend
+
+```bash
+cd backend
+pip install -r requirements.txt
+python main.py
+```
+
+Runs on:
+
+```
+http://localhost:8000
+```
+
+---
+
+### 4. Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Runs on:
+
+```
+http://localhost:3000
+```
+
+---
+
+## Configuration
+
+| Component   | Default                |
+| ----------- | ---------------------- |
+| Backend API | http://localhost:8000  |
+| Ollama API  | http://localhost:11434 |
+
+Modify endpoints directly in source if needed.
+
+---
+
+## Limitations
+
+- No server-side persistence (by design)
+- Full-context replay can become inefficient for very long conversations
+- No authentication or multi-user support
+- Optimized for local development, not production deployment
+
+---
+
+## Roadmap
+
+- Token streaming optimization (latency reduction)
+- Optional server-side session storage
+- Model parameter controls (temperature, top_p, etc.)
+- WebSocket-based streaming pipeline
+- Multi-model comparison interface
+- Dockerized setup for reproducible environments
+
+---
+
+## Author
+
+Uthso  
+Software QA Engineer • Security Enthusiast • AI/ML Practitioner
+
+- GitHub: https://github.com/Uthso66
+- LinkedIn: https://www.linkedin.com/in/tarikul-islam-uthso/
+
+---
+
+## License
+
+MIT License © 2025 Uthso
