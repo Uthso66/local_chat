@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import ollama
 from fastapi.middleware.cors import CORSMiddleware
+from typing import List
 
 app = FastAPI()
 
@@ -14,14 +15,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class MessageItem(BaseModel):
+    role: str
+    content: str
+
 class ChatRequest(BaseModel):
-    message: str
+    messages: List[MessageItem]  # full conversation history
     model: str = "qwen2.5:1.5b"
 
-def generate_stream(messages):
+def generate_stream(model: str, messages: list):
     stream = ollama.chat(
-        model=messages["model"],
-        messages=[{"role": "user", "content": messages["message"]}],
+        model=model,
+        messages=messages,  # pass entire history
         stream=True,
     )
     for chunk in stream:
@@ -35,8 +40,10 @@ async def list_models():
 
 @app.post("/chat")
 async def chat(request: ChatRequest):
+    # Convert pydantic models to dicts for ollama
+    messages = [{"role": m.role, "content": m.content} for m in request.messages]
     return StreamingResponse(
-        generate_stream({"message": request.message, "model": request.model}),
+        generate_stream(request.model, messages),
         media_type="text/plain",
     )
 

@@ -74,14 +74,14 @@ export default function Home() {
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput("");
     setIsLoading(true);
 
     const assistantMessage: Message = { role: "assistant", content: "" };
     setMessages((prev) => [...prev, assistantMessage]);
 
-    // Create an AbortController for this request
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
@@ -89,7 +89,11 @@ export default function Home() {
       const res = await fetch("http://localhost:8000/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input, model }),
+        body: JSON.stringify({
+          // Send FULL conversation history (without the empty assistant placeholder)
+          messages: updatedMessages,
+          model,
+        }),
         signal: controller.signal,
       });
 
@@ -116,7 +120,6 @@ export default function Home() {
       }
     } catch (error: unknown) {
       if (error instanceof Error && error.name === "AbortError") {
-        // User cancelled — update the message to show it was stopped
         setMessages((prev) => {
           const updated = [...prev];
           const lastIdx = updated.length - 1;
